@@ -133,9 +133,9 @@ app.layout = html.Div([
         options=[
             {'label': stock, 'value': stock} for stock in df_stocks['Stock/Index'].unique()
         ],
+        multi=True,  # Allow multiple selections
         value=None,
-        multi=True,
-        placeholder='Select stock'
+        placeholder='Select stock(s)'
     ),
     dcc.DatePickerRange(
         id='date-slider',
@@ -145,12 +145,10 @@ app.layout = html.Div([
         end_date=df_stocks['Date'].max(),
         display_format='YYYY-MM-DD',
         style={'height': '40px'}
-
     ),
     # Scatterplot
     dcc.Graph(id='scatter-plot')
 ])
-
 
 
 
@@ -162,14 +160,14 @@ app.layout = html.Div([
      Input('date-slider', 'end_date')]
 )
 
-def update_figures(selected_stock, start_date, end_date):
+def update_figures(selected_stocks, start_date, end_date):
     min_date = pd.to_datetime(start_date)
     max_date = pd.to_datetime(end_date)
 
-    if selected_stock is None:                              # zeige alle an wenn nichts ausgewählt ist
+    if not selected_stocks:  # If no stocks are selected (empty list)
         df_filtered_stocks = df_stocks[(df_stocks['Date'] >= min_date) & (df_stocks['Date'] <= max_date)]
     else:
-        df_filtered_stocks = df_stocks[(df_stocks['Stock/Index'] == selected_stock) &
+        df_filtered_stocks = df_stocks[(df_stocks['Stock/Index'].isin(selected_stocks)) &
                                        (df_stocks['Date'] >= min_date) &
                                        (df_stocks['Date'] <= max_date)]
 

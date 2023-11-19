@@ -104,11 +104,46 @@ def scatter_plot(df_filtered_stocks):
         x='Rendite %',
         y='Volatilität %',
         color='Year',
-        title='Scatterplot für Rendite und Volatilität',
-        labels={'Rendite %': 'Durchschnittliche Rendite', 'Volatilität %': 'Volatilität (Standardabweichung der Rendite)'}
+        labels={'Rendite %': 'avg. Return', 'Volatilität %': 'Volatility %'}
     )
 
     return fig
+
+def scatter_plot_cluster(df_filtered_stocks):
+    # Kennzahlen erstellen
+    df_volatility = df_filtered_stocks.groupby(['Stock/Index', 'Year'])['Return %'].std()
+    df_rendite = df_filtered_stocks.groupby(['Stock/Index', 'Year'])['Return %'].mean()
+    df_scatter = pd.DataFrame({'Rendite %': df_rendite, 'Volatilität %': df_volatility}).reset_index()
+    df_scatter = df_scatter[['Rendite %', 'Volatilität %']]
+
+    # Daten normalisieren
+    scaler = StandardScaler()
+    df_scatter_cluster = scaler.fit_transform(df_scatter)
+
+    wcss = []
+    for i in range(1, 10):
+        kmeans = KMeans(n_clusters=i, random_state=0)
+        kmeans.fit(df_scatter_cluster)
+        wcss.append(kmeans.inertia_)
+
+    kmeans_model = KMeans(n_clusters=3, random_state=0)
+    df_scatter['Cluster'] = kmeans_model.fit_predict(df_scatter_cluster)
+    df_scatter
+
+    fig = px.scatter(df_scatter, x='Rendite %', y='Volatilität %', color='Cluster',
+                     color_continuous_scale='viridis',
+                     labels={'Rendite %': 'avg. Return %', 'Volatilität %': 'Volatility %'},
+                     )
+
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(title='Cluster', yanchor='top', y=0.99, xanchor='left', x=0.01),
+        coloraxis_colorbar=dict(title='Cluster'),
+    )
+
+    return fig
+
+
 
 
 
@@ -135,7 +170,15 @@ app.layout = html.Div([
         ],
         multi=True,  # Allow multiple selections
         value=None,
-        placeholder='Select stock(s)'
+        placeholder='Select stock/index'
+    ),
+dcc.Dropdown(
+        id='stock-dropdown_candle',
+        options=[
+            {'label': stock, 'value': stock} for stock in df_stocks['Stock/Index'].unique()
+        ],
+        value=None,
+        placeholder='Select a stock'
     ),
     dcc.DatePickerRange(
         id='date-slider',
@@ -147,7 +190,10 @@ app.layout = html.Div([
         style={'height': '40px'}
     ),
     # Scatterplot
-    dcc.Graph(id='scatter-plot')
+    dcc.Graph(id='scatter-plot'),
+    # Scatterplot Cluster
+    dcc.Graph(id='scatter-plot-cluster'),
+
 ])
 
 
@@ -155,7 +201,9 @@ app.layout = html.Div([
 # Callback-Funktionen
 @app.callback(
     Output('scatter-plot', 'figure'),
+    Output('scatter-plot-cluster', 'figure'),
     [Input('stock-dropdown', 'value'),
+     Input('stock-dropdown_candle', 'value'),
      Input('date-slider', 'start_date'),
      Input('date-slider', 'end_date')]
 )
@@ -164,16 +212,21 @@ def update_figures(selected_stocks, start_date, end_date):
     min_date = pd.to_datetime(start_date)
     max_date = pd.to_datetime(end_date)
 
-    if not selected_stocks:  # If no stocks are selected (empty list)
+    if not selected_stocks:  # wenn nichts ausgewählt
         df_filtered_stocks = df_stocks[(df_stocks['Date'] >= min_date) & (df_stocks['Date'] <= max_date)]
     else:
         df_filtered_stocks = df_stocks[(df_stocks['Stock/Index'].isin(selected_stocks)) &
                                        (df_stocks['Date'] >= min_date) &
                                        (df_stocks['Date'] <= max_date)]
 
-    scatter_fig = scatter_plot(df_filtered_stocks)
 
-    return scatter_fig
+
+    scatter_fig = scatter_plot(df_filtered_stocks)
+    scatter_cluster_fig = scatter_plot_cluster(df_filtered_stocks)
+
+
+
+    return scatter_fig, scatter_cluster_fig
 
 
 

@@ -92,10 +92,10 @@ df_covid['Date'] = pd.to_datetime(df_covid['Date'], format='%Y-%m-%d')
 # FUNKTIONEN
 # -------------------------------------------------------------------
 
-def scatterplot(selected_stock, start_date, end_date):
+def scatter_plot(df_filtered_stocks):
     # Kennzahlen erstellen
-    df_volatility = df_stocks.groupby(['Stock/Index', 'Year'])['Return %'].std()
-    df_rendite = df_stocks.groupby(['Stock/Index', 'Year'])['Return %'].mean()
+    df_volatility = df_filtered_stocks.groupby(['Stock/Index', 'Year'])['Return %'].std()
+    df_rendite = df_filtered_stocks.groupby(['Stock/Index', 'Year'])['Return %'].mean()
     df_scatter = pd.DataFrame({'Rendite %': df_rendite, 'Volatilität %': df_volatility}).reset_index()
 
     # Scatterplot erstellen
@@ -134,11 +134,21 @@ app.layout = html.Div([
             {'label': stock, 'value': stock} for stock in df_stocks['Stock/Index'].unique()
         ],
         value=None,
+        multi=True,
         placeholder='Select stock'
     ),
+    dcc.DatePickerRange(
+        id='date-slider',
+        min_date_allowed=df_stocks['Date'].min(),
+        max_date_allowed=df_stocks['Date'].max(),
+        start_date=df_stocks['Date'].min(),
+        end_date=df_stocks['Date'].max(),
+        display_format='YYYY-MM-DD',
+        style={'height': '40px'}
 
+    ),
     # Scatterplot
-    dcc.Graph(id='scatter-plot', figure=scatterplot(None))
+    dcc.Graph(id='scatter-plot')
 ])
 
 
@@ -146,16 +156,26 @@ app.layout = html.Div([
 
 # Callback-Funktionen
 @app.callback(
-    Output('df_filtered_stock', 'data'),
+    Output('scatter-plot', 'figure'),
     [Input('stock-dropdown', 'value'),
      Input('date-slider', 'start_date'),
      Input('date-slider', 'end_date')]
 )
 
-def update_figures(selected_stock):
+def update_figures(selected_stock, start_date, end_date):
+    min_date = pd.to_datetime(start_date)
+    max_date = pd.to_datetime(end_date)
 
+    if selected_stock is None:                              # zeige alle an wenn nichts ausgewählt ist
+        df_filtered_stocks = df_stocks[(df_stocks['Date'] >= min_date) & (df_stocks['Date'] <= max_date)]
+    else:
+        df_filtered_stocks = df_stocks[(df_stocks['Stock/Index'] == selected_stock) &
+                                       (df_stocks['Date'] >= min_date) &
+                                       (df_stocks['Date'] <= max_date)]
 
-    return scatterplot(selected_stock)
+    scatter_fig = scatter_plot(df_filtered_stocks)
+
+    return scatter_fig
 
 
 

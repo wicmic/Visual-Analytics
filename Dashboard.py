@@ -54,20 +54,18 @@ df_stocks['Close'] = df_stocks['Close']
 df_stocks['High'] = df_stocks['High']
 df_stocks['Low'] = df_stocks['Low']
 df_stocks['Adj Close'] = df_stocks['Adj Close']
-df_stocks['Volume'] = df_stocks['Volume'].round().astype(int)
+
 
 # neue Measures hinzufügen
 df_stocks['Return'] = (df_stocks['Close'] - df_stocks['Open'])
 df_stocks['Return %'] = ((df_stocks['Return'] / df_stocks['Open']) * 100).round(1)
 # Monatszahlen
 df_stocks['Monthly Return'] = df_stocks.groupby(['Stock/Index', 'MonthYear'])['Return'].transform('sum')
-df_stocks['Open Value Month'] = df_stocks.groupby(['Stock/Index', 'MonthYear'])['Open'].transform(
-    'first')  # wird nur für die Kalkulation benötigt
+df_stocks['Open Value Month'] = df_stocks.groupby(['Stock/Index', 'MonthYear'])['Open'].transform('first')  # wird nur für die Kalkulation benötigt
 df_stocks['Monthly Return %'] = ((df_stocks['Monthly Return'] / df_stocks['Open Value Month']) * 100).round(1)
 # Jahreszahlen
 df_stocks['Yearly Return'] = df_stocks.groupby(['Stock/Index', 'Year'])['Return'].transform('sum')
-df_stocks['Open Value Year'] = df_stocks.groupby(['Stock/Index', 'Year'])['Open'].transform(
-    'first')  # wird nur für die Kalkulation benötigt
+df_stocks['Open Value Year'] = df_stocks.groupby(['Stock/Index', 'Year'])['Open'].transform('first')  # wird nur für die Kalkulation benötigt
 df_stocks['Yearly Return %'] = ((df_stocks['Yearly Return'] / df_stocks['Open Value Year']) * 100).round(1)
 
 # Covid
@@ -75,15 +73,14 @@ file_path = r'D:\Python\Visual Analytics\Visual-Analytics\Data_Covid\owid-covid-
 
 df_covid = pd.read_csv(file_path, delimiter=',')
 # nicht benötigte Spalten löschen
-columns_to_keep = ['iso_code', 'continent', 'location', 'date', 'new_cases', 'total_cases']
+columns_to_keep = ['iso_code', 'continent', 'location', 'date', 'new_cases']
 df_covid.drop(df_covid.columns.difference(columns_to_keep), axis=1, inplace=True)
 # Spalten umbenennen
 df_covid.columns = df_covid.columns.str.replace('iso_code', 'Country short')
 df_covid.columns = df_covid.columns.str.replace('continent', 'Continent')
 df_covid.columns = df_covid.columns.str.replace('location', 'Country')
 df_covid.columns = df_covid.columns.str.replace('date', 'Date')
-df_covid.columns = df_covid.columns.str.replace('total_cases', 'Cases Acc.')
-df_covid.columns = df_covid.columns.str.replace('new_cases', 'Cases')
+df_covid.columns = df_covid.columns.str.replace('new_cases', 'New Cases')
 
 # Datum formatieren
 df_covid['Date'] = pd.to_datetime(df_covid['Date'], format='%Y-%m-%d')
@@ -205,6 +202,14 @@ app.layout = html.Div([
         value=None,
         placeholder='Select stock(s)'
     ),
+    dcc.Dropdown(
+        id='country-dropdown',
+        options=[
+            {'label': country, 'value': country} for country in df_covid['Country'].unique()
+        ],
+        value='Switzerland',
+        placeholder='Select Country'
+    ),
     dcc.DatePickerRange(
         id='date-slider',
         min_date_allowed=df_stocks['Date'].min(),
@@ -220,8 +225,48 @@ app.layout = html.Div([
     dcc.Graph(id='scatter-plot-cluster'),
     # Treemap
     dcc.Graph(id='treemap-plot'),
+    # Table Stocks
+    dash_table.DataTable(
+        id='table-stocks',
+        columns=[
+            {'name': 'Stock/Index', 'id': 'Stock/Index'},
+            {'name': 'Start', 'id': 'Start'},
+            {'name': 'End', 'id': 'End'},
+            {'name': 'High', 'id': 'High', 'type': 'numeric', 'presentation': 'positive'},
+            {'name': 'Low', 'id': 'Low', 'type': 'numeric', 'presentation': 'negative'},
+            {'name': 'Volume (billions)', 'id': 'Volume'},
+            {'name': 'Return', 'id': 'Return'},
+            {'name': 'Return %', 'id': 'Return %'}
+        ],
+        style_data_conditional=[
+            {'if': {'column_id': 'High'},
+             'backgroundColor': '#7FFF7F', # grün
+             'color': 'black', },
+            {'if': {'column_id': 'Low'},
+             'backgroundColor': '#FF7F7F', # rot
+             'color': 'black', }
+        ],
+    ),
+    # Table Stocks
+    dash_table.DataTable(
+        id='table-covid',
+        columns=[
+            {'name': 'Start', 'id': 'Start_Cases'},
+            {'name': 'End', 'id': 'End_Cases'},
+            {'name': 'Acc.', 'id': 'End_Acc'},
+            {'name': 'High', 'id': 'High', 'type': 'numeric', 'presentation': 'positive'},
+            {'name': 'Low', 'id': 'Low', 'type': 'numeric', 'presentation': 'negative'}
+        ],
+        style_data_conditional=[
+            {'if': {'column_id': 'High'},
+             'backgroundColor': '#7FFF7F', # grün
+             'color': 'black', },
+            {'if': {'column_id': 'Low'},
+             'backgroundColor': '#FF7F7F', # rot
+             'color': 'black', }
+        ],
+    ),
 ])
-
 
 
 # Callback-Funktionen
@@ -229,15 +274,20 @@ app.layout = html.Div([
     Output('scatter-plot', 'figure'),
     Output('scatter-plot-cluster', 'figure'),
     Output('treemap-plot', 'figure'),
+    Output('table-stocks', 'data'),
+    Output('table-covid', 'data'),
     [Input('stock-dropdown', 'value'),
+    Input('country-dropdown', 'value'),
      Input('date-slider', 'start_date'),
      Input('date-slider', 'end_date')]
 )
 
-def update_figures(selected_stocks, start_date, end_date):
+def update_figures(selected_stocks, selected_country, start_date, end_date):
     min_date = pd.to_datetime(start_date)
     max_date = pd.to_datetime(end_date)
 
+
+    # für Visuals, welche Stocks eingschränken können
     if not selected_stocks:   # wenn nichts ausgewählt
         df_filtered_stocks = df_stocks[(df_stocks['Date'] >= min_date) & (df_stocks['Date'] <= max_date)]
     else:
@@ -246,13 +296,47 @@ def update_figures(selected_stocks, start_date, end_date):
                                        (df_stocks['Date'] <= max_date)]
 
 
+    # für Visuals, welche immer alle Stocks zeigen
     df_filtered_date_only = df_stocks[(df_stocks['Date'] >= min_date) & (df_stocks['Date'] <= max_date)]
 
+    # für Covid-Visuals, Country muss ausgewählt sein
+    df_filtered_covid_date = df_covid[(df_covid['Date'] >= min_date) & (df_covid['Date'] <= max_date) & (df_covid['Country'] == selected_country)]
+
+
+    # Table Stocks
+    df_table_stocks = df_filtered_date_only.groupby('Stock/Index').agg(
+        Start=('Open', 'first'),
+        End=('Close', 'last'),
+        High=('High', 'max'),
+        Low=('Low', 'min'),
+        Volume=('Volume', 'sum'),
+    ).reset_index()
+
+    df_table_stocks['Return'] = (df_table_stocks['End'] - df_table_stocks['Start']).round(0)
+    df_table_stocks['Return %'] = ((df_table_stocks['Return'] / df_table_stocks['Start']) * 100).round(2)
+    df_table_stocks[['Start', 'End', 'High', 'Low']] = df_table_stocks[['Start', 'End', 'High', 'Low']].round(0)
+    df_table_stocks['Volume'] = (df_table_stocks['Volume'] / 1000000000).round(1)       # in Milliarden / billions
+
+    # Table Covid
+    df_table_covid = df_filtered_covid_date.groupby('Country').agg(
+        Start_Cases=('New Cases', 'first'),
+        End_Cases=('New Cases', 'last'),
+        Start_Acc=('New Cases', 'first'),
+        End_Acc=('New Cases', 'sum'),
+        High=('New Cases', 'max'),
+        Low=('New Cases', 'min'),
+        Cases=('New Cases', 'sum')
+    ).reset_index()
+
+
+    # Definition der Visuals
     scatter_fig = scatter_plot(df_filtered_stocks)
     scatter_cluster_fig = scatter_plot_cluster(df_filtered_stocks)
     treemap_fig = treemap(df_filtered_date_only)
 
-    return scatter_fig, scatter_cluster_fig, treemap_fig
+
+    # zurückgeben
+    return scatter_fig, scatter_cluster_fig, treemap_fig, df_table_stocks.to_dict('records'), df_table_covid.to_dict('records')
 
 
 

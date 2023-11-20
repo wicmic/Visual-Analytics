@@ -200,7 +200,51 @@ def heatmap(df_filtered_date_only):
 
     return fig
 
+def candle_chart_trend(df_filtered_stock, df_filtered_covid_date):
+    # Kennzahlen erstellen
+    df_candle_chart_stocks = df_filtered_stock
+    df_candle_chart_covid = df_filtered_covid_date
 
+    # 20-Tage gleitenden Durchschnitt berechnen
+    df_candle_chart_stocks['20_MA'] = df_candle_chart_stocks['Close'].rolling(window=20).mean()
+
+    # Candle-Chart erstellen
+    fig = go.Figure()
+
+    # Candlestick
+    candlestick = go.Candlestick(x=df_candle_chart_stocks['Date'],
+                                 open=df_candle_chart_stocks['Open'],
+                                 high=df_candle_chart_stocks['High'],
+                                 low=df_candle_chart_stocks['Low'],
+                                 close=df_candle_chart_stocks['Close'],
+                                 name='Stock Price')
+    fig.add_trace(candlestick)
+
+    # 20-Tage gleitenden Durchschnitt hinzufügen
+    moving_avg = go.Scatter(x=df_candle_chart_stocks['Date'],
+                            y=df_candle_chart_stocks['20_MA'],
+                            mode='lines',
+                            name='20-Day Moving Average',
+                            line=dict(color='orange'))
+    fig.add_trace(moving_avg)
+
+    # Balkendiagramm für COVID-Cases hinzufügen
+    bar_chart = go.Bar(x=df_candle_chart_covid['Date'],
+                       y=df_candle_chart_covid['New Cases'],
+                       name='COVID-19 Cases',
+                       marker=dict(color='blue'),
+                       yaxis='y2')
+    fig.add_trace(bar_chart)
+
+    # Layout
+    fig.update_layout(title_text='Stock Price with 20-Day Moving Average',
+                      xaxis_title='Date',
+                      yaxis_title='Stock Price',
+                      xaxis_rangeslider_visible=True,
+                      yaxis2=dict(title='COVID-19 Cases', overlaying='y', side='right'),
+                      legend=dict(x=0.4, y=1.15, orientation='h'))  # Position der Legende
+
+    return fig
 
 # START APP
 # -------------------------------------------------------------------
@@ -225,7 +269,7 @@ app.layout = html.Div([
         ],
         multi=True,  # Allow multiple selections
         value=None,
-        placeholder='Select stock(s)'
+        placeholder='Select stocks/indexes'
     ),
     dcc.Dropdown(
         id='country-dropdown',
@@ -233,7 +277,7 @@ app.layout = html.Div([
             {'label': country, 'value': country} for country in df_covid['Country'].unique()
         ],
         value='Switzerland',
-        placeholder='Select Country'
+        placeholder='Select a country'
     ),
     dcc.DatePickerRange(
         id='date-slider',
@@ -244,6 +288,14 @@ app.layout = html.Div([
         display_format='YYYY-MM-DD',
         style={'height': '40px'}
     ),
+    dcc.Dropdown(
+        id='stock-dropdown2',
+        options=[
+            {'label': stock, 'value': stock} for stock in df_stocks['Stock/Index'].unique()
+        ],
+        value='BTC-USD',
+        placeholder='Select a stock/index'
+    ),
     # Scatterplot
     dcc.Graph(id='scatter-plot'),
     # Scatterplot Cluster
@@ -252,6 +304,8 @@ app.layout = html.Div([
     dcc.Graph(id='treemap-plot'),
     # Heatmap
     dcc.Graph(id='heatmap-plot'),
+    # Candle-Chart
+    dcc.Graph(id='candle-plot-trend'),
     # Table Stocks
     dash_table.DataTable(
         id='table-stocks',
@@ -302,15 +356,17 @@ app.layout = html.Div([
     Output('scatter-plot-cluster', 'figure'),
     Output('treemap-plot', 'figure'),
     Output('heatmap-plot', 'figure'),
+    Output('candle-plot-trend', 'figure'),
     Output('table-stocks', 'data'),
     Output('table-covid', 'data'),
     [Input('stock-dropdown', 'value'),
+    Input('stock-dropdown2', 'value'),
     Input('country-dropdown', 'value'),
      Input('date-slider', 'start_date'),
      Input('date-slider', 'end_date')]
 )
 
-def update_figures(selected_stocks, selected_country, start_date, end_date):
+def update_figures(selected_stocks, selected_stock, selected_country, start_date, end_date):
     min_date = pd.to_datetime(start_date)
     max_date = pd.to_datetime(end_date)
 
@@ -320,6 +376,14 @@ def update_figures(selected_stocks, selected_country, start_date, end_date):
         df_filtered_stocks = df_stocks[(df_stocks['Date'] >= min_date) & (df_stocks['Date'] <= max_date)]
     else:
         df_filtered_stocks = df_stocks[(df_stocks['Stock/Index'].isin(selected_stocks)) &
+                                       (df_stocks['Date'] >= min_date) &
+                                       (df_stocks['Date'] <= max_date)]
+
+    # für Visuals, welche nur ein Stock auswählen können
+    if not selected_stock:   # wenn nichts ausgewählt
+        df_filtered_stock = df_stocks[(df_stocks['Date'] >= min_date) & (df_stocks['Date'] <= max_date)]
+    else:
+        df_filtered_stock = df_stocks[(df_stocks['Stock/Index'].isin([selected_stock])) &
                                        (df_stocks['Date'] >= min_date) &
                                        (df_stocks['Date'] <= max_date)]
 
@@ -362,9 +426,10 @@ def update_figures(selected_stocks, selected_country, start_date, end_date):
     scatter_cluster_fig = scatter_plot_cluster(df_filtered_stocks)
     treemap_fig = treemap(df_filtered_date_only)
     heatmap_fig = heatmap(df_filtered_date_only)
+    candle_trend_fig = candle_chart_trend(df_filtered_stock, df_filtered_covid_date)
 
     # zurückgeben
-    return scatter_fig, scatter_cluster_fig, treemap_fig, heatmap_fig, df_table_stocks.to_dict('records'), df_table_covid.to_dict('records')
+    return scatter_fig, scatter_cluster_fig, treemap_fig, heatmap_fig, candle_trend_fig, df_table_stocks.to_dict('records'), df_table_covid.to_dict('records')
 
 
 

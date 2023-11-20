@@ -120,7 +120,7 @@ def scatter_plot_cluster(df_filtered_stocks):
 
     wcss = []
     for i in range(1, 10):
-        kmeans = KMeans(n_clusters=i, random_state=0)
+        kmeans = KMeans(n_clusters=i, random_state=0, n_init=10)
         kmeans.fit(df_scatter_cluster)
         wcss.append(kmeans.inertia_)
 
@@ -174,6 +174,31 @@ def treemap(df_filtered_date_only):
 
     return fig
 
+def heatmap(df_filtered_date_only):
+    # Kennzahlen erstellen
+    df_heatmap = df_filtered_date_only.pivot(index='Stock/Index', columns='Date', values='Return %')
+
+    # Heatmap erstellen
+    fig = px.imshow(df_heatmap,
+                    labels=dict(x='Date', y='Stock/Index', color='Return %'),
+                    x=df_heatmap.columns,
+                    y=df_heatmap.index,
+                    color_continuous_scale='RdYlGn',
+                    color_continuous_midpoint=0,
+                    zmin=-5,
+                    zmax=5,
+                    )
+
+    # Layout
+    fig.update_layout(
+        #width=800,
+        xaxis_title='Date',
+        yaxis_title='Stock/Index',
+        coloraxis_colorbar=dict(thicknessmode="pixels", thickness=20, lenmode="pixels", len=250, yanchor="top", y=1, dtick=2),
+        autosize=True,
+    )
+
+    return fig
 
 
 
@@ -225,6 +250,8 @@ app.layout = html.Div([
     dcc.Graph(id='scatter-plot-cluster'),
     # Treemap
     dcc.Graph(id='treemap-plot'),
+    # Heatmap
+    dcc.Graph(id='heatmap-plot'),
     # Table Stocks
     dash_table.DataTable(
         id='table-stocks',
@@ -274,6 +301,7 @@ app.layout = html.Div([
     Output('scatter-plot', 'figure'),
     Output('scatter-plot-cluster', 'figure'),
     Output('treemap-plot', 'figure'),
+    Output('heatmap-plot', 'figure'),
     Output('table-stocks', 'data'),
     Output('table-covid', 'data'),
     [Input('stock-dropdown', 'value'),
@@ -333,10 +361,10 @@ def update_figures(selected_stocks, selected_country, start_date, end_date):
     scatter_fig = scatter_plot(df_filtered_stocks)
     scatter_cluster_fig = scatter_plot_cluster(df_filtered_stocks)
     treemap_fig = treemap(df_filtered_date_only)
-
+    heatmap_fig = heatmap(df_filtered_date_only)
 
     # zurückgeben
-    return scatter_fig, scatter_cluster_fig, treemap_fig, df_table_stocks.to_dict('records'), df_table_covid.to_dict('records')
+    return scatter_fig, scatter_cluster_fig, treemap_fig, heatmap_fig, df_table_stocks.to_dict('records'), df_table_covid.to_dict('records')
 
 
 

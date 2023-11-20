@@ -144,6 +144,41 @@ def scatter_plot_cluster(df_filtered_stocks):
 
     return fig
 
+def treemap(df_filtered_date_only):
+    # Kennzahlen erstellen
+    df_treemap = df_filtered_date_only.groupby('Stock/Index').agg(
+        Open=('Open', 'first'),
+        Close=('Close', 'last'),
+        Volume=('Volume', 'sum')
+        ).reset_index()
+
+    df_treemap['Return'] = df_treemap['Close'] - df_treemap['Open']
+    df_treemap['Return %'] = ((df_treemap['Return'] / df_treemap['Open']) * 100).round(1)
+
+    # Treemap erstellen
+    fig = px.treemap(df_treemap,
+                     path=['Stock/Index'],
+                     values='Return',
+                     color='Return %',
+                     color_continuous_scale='RdYlGn',
+                     color_continuous_midpoint=0)
+
+    # Layout
+    fig.update_layout(
+        margin = dict(t=50, l=25, r=25, b=25),
+        font=dict(size=14, color='lightgray'),
+    )
+
+    fig.update_coloraxes(showscale=False) # Farbskala ausblenden
+
+    # Texte
+    return_text = ('Return: ' +df_treemap['Return'].round().apply(lambda x: '{:,.0f}'.format(x)).astype(str) + '\n(' + df_treemap['Return %'].astype(str) + '%)')
+    fig.update_traces(text=return_text, selector=dict(type='treemap'), textposition='middle center', insidetextfont=dict(size=20))
+
+    return fig
+
+
+
 
 # START APP
 # -------------------------------------------------------------------
@@ -183,6 +218,8 @@ app.layout = html.Div([
     dcc.Graph(id='scatter-plot'),
     # Scatterplot Cluster
     dcc.Graph(id='scatter-plot-cluster'),
+    # Treemap
+    dcc.Graph(id='treemap-plot'),
 ])
 
 
@@ -191,6 +228,7 @@ app.layout = html.Div([
 @app.callback(
     Output('scatter-plot', 'figure'),
     Output('scatter-plot-cluster', 'figure'),
+    Output('treemap-plot', 'figure'),
     [Input('stock-dropdown', 'value'),
      Input('date-slider', 'start_date'),
      Input('date-slider', 'end_date')]
@@ -207,10 +245,14 @@ def update_figures(selected_stocks, start_date, end_date):
                                        (df_stocks['Date'] >= min_date) &
                                        (df_stocks['Date'] <= max_date)]
 
+
+    df_filtered_date_only = df_stocks[(df_stocks['Date'] >= min_date) & (df_stocks['Date'] <= max_date)]
+
     scatter_fig = scatter_plot(df_filtered_stocks)
     scatter_cluster_fig = scatter_plot_cluster(df_filtered_stocks)
+    treemap_fig = treemap(df_filtered_date_only)
 
-    return scatter_fig, scatter_cluster_fig
+    return scatter_fig, scatter_cluster_fig, treemap_fig
 
 
 

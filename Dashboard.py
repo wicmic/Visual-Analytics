@@ -2,6 +2,7 @@
 # -------------------------------------------------------------------
 # https://hackerthemes.com/bootstrap-cheatsheet/#mt-1
 # Bootstrap Themes: https://bootswatch.com/flatly/
+# Farbschemas aus https://plotly.com/python/builtin-colorscales/
 
 # IMPORT LIBRARIES
 # -------------------------------------------------------------------
@@ -101,8 +102,31 @@ def scatter_plot(df_filtered_stocks):
         x='Rendite %',
         y='Volatilität %',
         color='Year',
-        title='Scatterplot für Rendite und Volatilität',
-        labels={'Rendite %': 'Durchschnittliche Rendite', 'Volatilität %': 'Volatilität (Standardabweichung der Rendite)'}
+        title='Average Return and Volatility per Day',
+        labels={'Rendite %': 'avg. Return %', 'Volatilität %': 'Volatility %'},
+        hover_data=['Stock/Index']
+    )
+
+    # Layout
+    fig.update_layout(
+        plot_bgcolor='black',  # Hintergrundfarbe
+        paper_bgcolor='black',  # Hintergrundfarbe des gesamten Plots
+        font=dict(color='darkgrey', family='Arial, sans-serif'),  # Schriftfarbe- und -art
+        coloraxis_colorbar=dict(title='Jahr'),
+        coloraxis=dict(colorscale='Greens'),
+        xaxis=dict(
+            showgrid=False,  # Gitterlinien ausblenden
+            title='avg. Return %',
+            zeroline=True,  # Nulllinie anzeigen
+            zerolinecolor='darkgrey'  # Farbe der Nulllinie
+        ),
+        yaxis=dict(
+            showgrid=False,  # Gitterlinien ausblenden
+            title='Volatility %',
+            zeroline=True,  # Nulllinie anzeigen
+            zerolinecolor='darkgrey',  # Farbe der Nulllinie
+            rangemode = 'tozero'  # startet bei 0
+        )
     )
 
     return fig
@@ -129,14 +153,33 @@ def scatter_plot_cluster(df_filtered_stocks):
     df_scatter
 
     fig = px.scatter(df_scatter, x='Rendite %', y='Volatilität %', color='Cluster',
-                     color_continuous_scale='viridis',
+                     color_continuous_scale='Greens',
                      labels={'Rendite %': 'avg. Return %', 'Volatilität %': 'Volatility %'},
+                     title='Average Return and Volatility per Day',
                      )
-
+    # Layout
     fig.update_layout(
         showlegend=True,
+        plot_bgcolor='black',  # Hintergrundfarbe
+        paper_bgcolor='black',  # Hintergrundfarbe des gesamten Plots
         legend=dict(title='Cluster', yanchor='top', y=0.99, xanchor='left', x=0.01),
         coloraxis_colorbar=dict(title='Cluster'),
+        font=dict(color='darkgrey', family='Arial, sans-serif'),
+        coloraxis=dict(colorscale='Greens'),
+        xaxis=dict(
+            showgrid=False,  # Gitterlinien ausblenden
+            title='avg. Return %',
+            zeroline=True,  # Nulllinie anzeigen
+            zerolinecolor='darkgrey'  # Farbe der Nulllinie
+        ),
+        yaxis=dict(
+            showgrid=False,  # Gitterlinien ausblenden
+            title='Volatility %',
+            zeroline=True,  # Nulllinie anzeigen
+            zerolinecolor='darkgrey',  # Farbe der Nulllinie
+            rangemode='tozero'  # startet bei 0
+        )
+
     )
 
     return fig
@@ -162,13 +205,15 @@ def treemap(df_filtered_date_only):
 
     # Layout
     fig.update_layout(
-        margin = dict(t=50, l=25, r=25, b=25),
-        font=dict(size=14, color='lightgray'),
-    )
+        plot_bgcolor='black',  # Hintergrundfarbe des Plots
+        paper_bgcolor='black',  # Hintergrundfarbe des gesamten Plots
+        margin=dict(t=50, l=25, r=25, b=25),
+        font=dict(size=14, color='darkgrey', family='Arial, sans-serif'),
+    ) # graue Fläche am Rand geht nicht weg - weshalb?
 
     fig.update_coloraxes(showscale=False) # Farbskala ausblenden
 
-    # Texte
+    # Beschriftungen
     return_text = ('Return: ' +df_treemap['Return'].round().apply(lambda x: '{:,.0f}'.format(x)).astype(str) + '\n(' + df_treemap['Return %'].astype(str) + '%)')
     fig.update_traces(text=return_text, selector=dict(type='treemap'), textposition='middle center', insidetextfont=dict(size=20))
 
@@ -192,9 +237,14 @@ def heatmap(df_filtered_date_only):
     # Layout
     fig.update_layout(
         #width=800,
-        xaxis_title='Date',
-        yaxis_title='Stock/Index',
+        #height=600,
+        plot_bgcolor='black',  # Hintergrundfarbe des Plots
+        paper_bgcolor='black',  # Hintergrundfarbe des gesamten Plots
+        font=dict(color='darkgrey'),  # Schriftfarbe
+        #xaxis_title='Date',
+        #yaxis_title='Stock/Index',
         coloraxis_colorbar=dict(thicknessmode="pixels", thickness=20, lenmode="pixels", len=250, yanchor="top", y=1, dtick=2),
+        xaxis=dict(rangeslider_visible=True, showspikes=True, spikethickness=2),
         autosize=True,
     )
 
@@ -225,24 +275,49 @@ def candle_chart_trend(df_filtered_stock, df_filtered_covid_date):
                             y=df_candle_chart_stocks['20_MA'],
                             mode='lines',
                             name='20-Day Moving Average',
-                            line=dict(color='orange'))
+                            line=dict(color='tan'))
     fig.add_trace(moving_avg)
 
     # Balkendiagramm für COVID-Cases hinzufügen
     bar_chart = go.Bar(x=df_candle_chart_covid['Date'],
                        y=df_candle_chart_covid['New Cases'],
                        name='COVID-19 Cases',
-                       marker=dict(color='blue'),
+                       marker=dict(color='papayawhip'),
                        yaxis='y2')
     fig.add_trace(bar_chart)
 
     # Layout
-    fig.update_layout(title_text='Stock Price with 20-Day Moving Average',
-                      xaxis_title='Date',
-                      yaxis_title='Stock Price',
-                      xaxis_rangeslider_visible=True,
-                      yaxis2=dict(title='COVID-19 Cases', overlaying='y', side='right'),
-                      legend=dict(x=0.4, y=1.15, orientation='h'))  # Position der Legende
+    fig.update_layout(
+        plot_bgcolor='black',  # Hintergrundfarbe des Plots
+        paper_bgcolor='black',  # Hintergrundfarbe des gesamten Plots
+        font=dict(color='darkgrey', family='Arial, sans-serif'),  # Schriftfarbe und -art
+        #title_text='Stock Price with 20-Day Moving Average and COVID-19 Cases',
+        xaxis_rangeslider_visible=True, # Slider einblenden
+        legend=dict(x=0.2, y=1.1, orientation='h'), # Position der Legende
+
+        xaxis = dict(
+            showgrid=False,  # Gitterlinien ausblenden
+            #title='Date',
+            zeroline=True,  # Nulllinie anzeigen
+            zerolinecolor='darkgrey'  # Farbe der Nulllinie
+        ),
+        yaxis = dict(
+            showgrid=False,  # Gitterlinien ausblenden
+            title='Stock Price',
+            zeroline=True,  # Nulllinie anzeigen
+            zerolinecolor='darkgrey',  # Farbe der Nulllinie
+            rangemode='tozero'  # startet bei 0
+        ),
+        yaxis2 = dict(
+            showgrid=False,  # Gitterlinien ausblenden
+            title='COVID-19 Cases',
+            overlaying='y',
+            side='right',
+            zeroline=False,  # Nulllinie nicht anzeigen
+            # zerolinecolor='darkgrey',  # Farbe der Nulllinie
+            rangemode='tozero'  # startet bei 0
+        )
+    )
 
     return fig
 
@@ -259,94 +334,222 @@ server = app.server
 
 # LAYOUT SECTION: BOOTSTRAP
 # --------------------------------------------------------------------
-app.layout = html.Div([
-    html.H1("Stock & Covid Dashboard"),
+app.layout = html.Div( style={
+        'backgroundColor': 'black',  # Set the background color to black
+        'color': 'darkgrey',
+        'fontFamily': 'Arial, sans-serif',
+        },
+    children=[
+        html.H1("Stock & Covid Dashboard"),
+    dcc.Loading(
+        id="loading",
+        type="default",
+        children=[
+            dbc.Row(                            # row0
+                className='mt-3',
+                children=[
 
-    dcc.Dropdown(
-        id='stock-dropdown',
-        options=[
-            {'label': stock, 'value': stock} for stock in df_stocks['Stock/Index'].unique()
-        ],
-        multi=True,  # Allow multiple selections
-        value=None,
-        placeholder='Select stocks/indexes'
-    ),
-    dcc.Dropdown(
-        id='country-dropdown',
-        options=[
-            {'label': country, 'value': country} for country in df_covid['Country'].unique()
-        ],
-        value='Switzerland',
-        placeholder='Select a country'
-    ),
-    dcc.DatePickerRange(
-        id='date-slider',
-        min_date_allowed=df_stocks['Date'].min(),
-        max_date_allowed=df_stocks['Date'].max(),
-        start_date=df_stocks['Date'].min(),
-        end_date=df_stocks['Date'].max(),
-        display_format='YYYY-MM-DD',
-        style={'height': '40px'}
-    ),
-    dcc.Dropdown(
-        id='stock-dropdown2',
-        options=[
-            {'label': stock, 'value': stock} for stock in df_stocks['Stock/Index'].unique()
-        ],
-        value='BTC-USD',
-        placeholder='Select a stock/index'
-    ),
-    # Scatterplot
-    dcc.Graph(id='scatter-plot'),
-    # Scatterplot Cluster
-    dcc.Graph(id='scatter-plot-cluster'),
-    # Treemap
-    dcc.Graph(id='treemap-plot'),
-    # Heatmap
-    dcc.Graph(id='heatmap-plot'),
-    # Candle-Chart
-    dcc.Graph(id='candle-plot-trend'),
-    # Table Stocks
-    dash_table.DataTable(
-        id='table-stocks',
-        columns=[
-            {'name': 'Stock/Index', 'id': 'Stock/Index'},
-            {'name': 'Start', 'id': 'Start'},
-            {'name': 'End', 'id': 'End'},
-            {'name': 'High', 'id': 'High', 'type': 'numeric', 'presentation': 'positive'},
-            {'name': 'Low', 'id': 'Low', 'type': 'numeric', 'presentation': 'negative'},
-            {'name': 'Volume (billions)', 'id': 'Volume'},
-            {'name': 'Return', 'id': 'Return'},
-            {'name': 'Return %', 'id': 'Return %'}
-        ],
-        style_data_conditional=[
-            {'if': {'column_id': 'High'},
-             'backgroundColor': '#7FFF7F', # grün
-             'color': 'black', },
-            {'if': {'column_id': 'Low'},
-             'backgroundColor': '#FF7F7F', # rot
-             'color': 'black', }
-        ],
-    ),
-    # Table Stocks
-    dash_table.DataTable(
-        id='table-covid',
-        columns=[
-            {'name': 'Start', 'id': 'Start_Cases'},
-            {'name': 'End', 'id': 'End_Cases'},
-            {'name': 'Acc.', 'id': 'End_Acc'},
-            {'name': 'High', 'id': 'High', 'type': 'numeric', 'presentation': 'positive'},
-            {'name': 'Low', 'id': 'Low', 'type': 'numeric', 'presentation': 'negative'}
-        ],
-        style_data_conditional=[
-            {'if': {'column_id': 'High'},
-             'backgroundColor': '#7FFF7F', # grün
-             'color': 'black', },
-            {'if': {'column_id': 'Low'},
-             'backgroundColor': '#FF7F7F', # rot
-             'color': 'black', }
-        ],
-    ),
+                    dbc.Col(
+                        dcc.DatePickerRange(
+                            id='date-slider',
+                            min_date_allowed=df_stocks['Date'].min(),
+                            max_date_allowed=df_stocks['Date'].max(),
+                            start_date=df_stocks['Date'].min(),
+                            end_date=df_stocks['Date'].max(),
+                            display_format='YYYY-MM-DD',
+                            style={
+                                'height': '40px',
+                                'backgroundColor': 'black',
+                                'color': 'black',
+                                'whiteSpace': 'normal',
+                                'fontFamily': 'Arial, sans-serif',
+                                'margin-bottom': '10px',
+                            }
+                        ),
+                    ),
+
+                    dbc.Col(),
+
+
+                    dbc.Col(
+                            dcc.Dropdown(
+                                id='country-dropdown',
+                                options=[
+                                    {'label': country, 'value': country} for country in df_covid['Country'].unique()
+                                ],
+                                value='Switzerland',
+                                placeholder='Select a country',
+                                style={
+                                    'backgroundColor': 'black',
+                                    'color': 'black',
+                                    'textAlign': 'left',
+                                    'fontFamily': 'Arial, sans-serif',
+                                    'whiteSpace': 'normal',
+                                    'height': 'auto',
+                                    'margin-bottom': '10px',
+                                }
+                            ),
+                    ),
+
+                    dbc.Col(
+                            dcc.Dropdown(
+                                id='stock-dropdown2',
+                                options=[
+                                    {'label': stock, 'value': stock} for stock in df_stocks['Stock/Index'].unique()
+                                ],
+                                value='BTC-USD',
+                                placeholder='Select a stock/index',
+                                style={
+                                    'backgroundColor': 'black',
+                                    'color': 'black',
+                                    'textAlign': 'left',
+                                    'fontFamily': 'Arial, sans-serif',
+                                    'whiteSpace': 'normal',
+                                    'height': 'auto',
+                                    'margin-bottom': '10px',
+                                }
+                            ),
+                    ),
+
+                    dbc.Col(),
+
+                    dbc.Col(
+                            dcc.Dropdown(
+                                id='stock-dropdown',
+                                options=[
+                                    {'label': stock, 'value': stock} for stock in df_stocks['Stock/Index'].unique()
+                                ],
+                                multi=True,  # Mehfachauswahl erlauben
+                                value=None,
+                                placeholder='Select stocks/indexes',
+                                style={
+                                    'backgroundColor': 'black',
+                                    'color': 'black',
+                                    'textAlign': 'left',
+                                    'fontFamily': 'Arial, sans-serif',
+                                    'whiteSpace': 'normal',
+                                    'height': 'auto',
+                                    'margin-bottom': '10px',
+                                    }
+                            ),
+                    ),
+                ], style={'width': '100%'}),
+
+
+
+            dbc.Row([                           # row1
+                dbc.Col([                       # Col1
+                    # Table Covid
+                    dash_table.DataTable(
+                        id='table-covid',
+                        columns=[
+                            {'name': 'Start', 'id': 'Start_Cases'},
+                            {'name': 'End', 'id': 'End_Cases'},
+                            {'name': 'Acc.', 'id': 'End_Acc'},
+                            {'name': 'High', 'id': 'High', 'type': 'numeric', 'presentation': 'positive'},
+                            {'name': 'Low', 'id': 'Low', 'type': 'numeric', 'presentation': 'negative'}
+                        ],
+                        style_table={'overflowX': 'auto', 'fontFamily': '-apple-system'},
+                        style_header={
+                            'backgroundColor': 'black',
+                            'color': 'darkgrey'
+                        },
+                        style_data={
+                            'backgroundColor': 'black',
+                            'color': 'darkgrey'
+                        },
+                        style_as_list_view=True,
+                        style_cell={'textAlign': 'left',
+                                    'fontSize': '75%',
+                                    'fontFamily': 'Arial, sans-serif',
+                                    'whiteSpace': 'normal',
+                                    'height': 'auto'},
+                    ),
+                ], width={'size': 3}),
+                dbc.Col([               # Col2
+
+                ], width={'size': 3}),
+                dbc.Col([               # Col3
+
+                ], width={'size': 5}),
+            ], style={'width': '100%', 'margin-bottom': '15px',}),
+
+            dbc.Row([                   #row2
+                dbc.Col([               #Col1
+                    # Table Stocks
+                    dash_table.DataTable(
+                        id='table-stocks',
+                        columns=[
+                            {'name': 'Stock/Index', 'id': 'Stock/Index'},
+                            {'name': 'Start', 'id': 'Start'},
+                            {'name': 'End', 'id': 'End'},
+                            {'name': 'High', 'id': 'High', 'type': 'numeric', 'presentation': 'positive'},
+                            {'name': 'Low', 'id': 'Low', 'type': 'numeric', 'presentation': 'negative'},
+                            {'name': 'Volume (billions)', 'id': 'Volume'},
+                            {'name': 'Return', 'id': 'Return'},
+                            {'name': 'Return %', 'id': 'Return %'}
+                        ],
+                        style_table={'overflowX': 'auto', 'fontFamily': '-apple-system'},
+                        style_header={
+                            'backgroundColor': 'black',
+                            'color': 'darkgrey'
+                        },
+                        style_data_conditional=[
+                            {'if': {'filter_query': '{Return} >= 0'},
+                            'backgroundColor': 'forestgreen',
+                            'color': 'darkgrey'
+                            },
+                            {'if': {'filter_query': '{Return} < 0'},
+                            'backgroundColor': 'darkred',
+                            'color': 'black' # in grau nicht leserlich
+                            }
+                        ],
+                        style_as_list_view=True,
+                        page_current= 0,
+                        page_size= 15,
+                        style_cell ={'textAlign': 'left',
+                                        'fontSize': '75%',
+                                        'fontFamily': 'Arial, sans-serif',
+                                        'whiteSpace': 'normal',
+                                        'height': 'auto'},
+                    ),
+                ], width={'size': 3}),
+                dbc.Col([               #Col2
+                    # Candle-Chart
+                    dcc.Graph(id='candle-plot-trend'),
+                ], width={'size': 6}),
+                dbc.Col([               #Col3
+                    # Scatterplot
+                    dcc.Graph(id='scatter-plot'),
+                ], width={'size': 3}),
+            ], style={'width': '100%', 'margin-bottom': '1px',}),
+
+
+
+            dbc.Row([                   #row3
+                dbc.Col([               #Col1
+                    # Treemap
+                    dcc.Graph(id='treemap-plot'),
+                ], width={'size': 5}),
+
+
+                dbc.Col([               #Col2
+                    # Heatmap
+                    dcc.Graph(id='heatmap-plot'),
+
+                ], width={'size': 7}),
+            ], style={'width': '100%'}),
+
+
+                    # Scatterplot Cluster
+                    dcc.Graph(id='scatter-plot-cluster'),
+
+
+
+
+
+        ]
+    )
 ])
 
 
@@ -360,8 +563,8 @@ app.layout = html.Div([
     Output('table-stocks', 'data'),
     Output('table-covid', 'data'),
     [Input('stock-dropdown', 'value'),
-    Input('stock-dropdown2', 'value'),
-    Input('country-dropdown', 'value'),
+     Input('stock-dropdown2', 'value'),
+     Input('country-dropdown', 'value'),
      Input('date-slider', 'start_date'),
      Input('date-slider', 'end_date')]
 )

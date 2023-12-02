@@ -436,4 +436,4 @@ def update_figures(selected_stocks, selected_stock, selected_country, start_date
 # RUN THE APP
 # --------------------------------------------------------------------
 if __name__ == '__main__':
-    app.run_server(debug=False, port=8055)
+    app.run_server(debug=False, port=8056)

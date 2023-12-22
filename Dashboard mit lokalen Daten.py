@@ -30,7 +30,7 @@ from kneed import KneeLocator
 # -------------------------------------------------------------------
 
 # Stocks
-folder_path = 'D:\Python\Visual Analytics\Visual-Analytics\Data_stocks'  # Ordnerpfad allenfalls anpassen
+folder_path = '.\Data_stocks'
 data_frames = []
 
 for file in os.listdir(folder_path):
@@ -41,8 +41,7 @@ for file in os.listdir(folder_path):
         data['Stock/Index'] = filename  # Hinzufügen der Dateinamens-Spalte
         data_frames.append(data)
 
-df_stocks = pd.concat(data_frames,
-                      ignore_index=True)  # enthält die aggregierten Daten mit der zusätzlichen Information "Titel" in der letzten Spalte
+df_stocks = pd.concat(data_frames, ignore_index=True)  # enthält die aggregierten Daten mit der zusätzlichen Information "Titel" in der letzten Spalte
 df_stocks.replace([np.inf, -np.inf, np.nan], 0, inplace=True)
 
 # Datum formatieren und Infomationen hinzufügen
@@ -70,7 +69,7 @@ df_stocks['Open Value Year'] = df_stocks.groupby(['Stock/Index', 'Year'])['Open'
 df_stocks['Yearly Return %'] = ((df_stocks['Yearly Return'] / df_stocks['Open Value Year']) * 100).round(1)
 
 # Covid
-file_path = r'D:\Python\Visual Analytics\Visual-Analytics\Data_Covid\owid-covid-data.csv'
+file_path = r'.\Data_Covid\owid-covid-data.csv'
 
 df_covid = pd.read_csv(file_path, delimiter=',')
 # nicht benötigte Spalten löschen
@@ -378,6 +377,7 @@ app.layout = html.Div(
                                     {'label': stock, 'value': stock} for stock in df_stocks['Stock/Index'].unique()
                                 ],
                                 multi=True,  # Mehrfachauswahl erlauben
+                                clearable=True, # Löschen aller ausgewählten Werte
                                 value=None,
                                 placeholder='Select stocks/indexes',
                                 style={
@@ -464,7 +464,7 @@ app.layout = html.Div(
                                 {'label': stock, 'value': stock} for stock in df_stocks['Stock/Index'].unique()
                             ],
                             value='BTC-USD',
-                            #placeholder='Select a stock/index',
+                            placeholder='Select a stock/index',
                             style={
                                 'backgroundColor': 'darkgrey',
                                 'color': 'black',
@@ -516,7 +516,7 @@ app.layout = html.Div(
                             ],
                             style_as_list_view=True,
                             page_current=0,
-                            page_size=15,
+                            page_size=12,
                             style_cell={
                                 'textAlign': 'left',
                                 'fontSize': '75%',

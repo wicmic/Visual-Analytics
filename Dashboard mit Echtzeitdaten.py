@@ -25,27 +25,24 @@ import matplotlib.ticker as mticker
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from kneed import KneeLocator
-import yfinance as yf  # yfinance-Import hinzugefügt
+import yfinance as yf
 
 # IMPORT DATA
 # -------------------------------------------------------------------
-# Aktiensymbole
-aktien_symbole = ["BTC-USD", "^FCHI", "^GDAXI", "^HSI", "^IXIC", "^N225", "^RUT", "000001.SS"]
+# Aktiensymbole definieren und extrahieren
+aktien_symbole = ["BTC-USD", "^FCHI", "^GDAXI", "^HSI", "^IXIC", "^N225", "^RUT", "000001.SS", "AAPL", "MSFT", "FB", "TSLA", "UBS", "NSRGY", "NVS", "DB", "HSBC", "LOGI", "EA", "VWAGY", "RNLSY", "UBSFY", "SMSN.IL", "SRAIL.SW",  ]
 
-# Durchlaufe die Aktiensymbole und rufe Daten von Yahoo Finance ab
 data_frames = []
 for aktien_symbol in aktien_symbole:
-    aktien_daten = yf.download(aktien_symbol, start="2018-01-01")
+    aktien_daten = yf.download(aktien_symbol, start="2010-01-01")
     data_frames.append(aktien_daten)
 
 # DataFrame für Aktiendaten erstellen
 df_stocks = pd.concat(data_frames, keys=aktien_symbole, names=['Stock/Index', 'Date'])
 
-# Datum als separate Spalte
+# Datum formatieren und weitere Infomationen hinzufügen
 df_stocks.reset_index(inplace=True)
 df_stocks['Date'] = pd.to_datetime(df_stocks['Date'], format='%Y-%m-%d')
-
-# Datum formatieren und Infomationen hinzufügen
 df_stocks['Month'] = df_stocks['Date'].dt.month
 df_stocks['Year'] = df_stocks['Date'].dt.year
 df_stocks['MonthYear'] = df_stocks['Date'].dt.to_period('M')
@@ -68,7 +65,7 @@ df_stocks['Open Value Year'] = df_stocks.groupby(['Stock/Index', 'Year'])['Open'
 df_stocks['Yearly Return %'] = ((df_stocks['Yearly Return'] / df_stocks['Open Value Year']) * 100).round(1)
 
 # Covid
-file_path = r'C:\Users\mguen\OneDrive\Desktop\VA Projekt Kurse\Data_Covid\owid-covid-data.csv' # Pfad anpassen
+file_path = r'.\Data_Covid\owid-covid-data.csv'
 
 df_covid = pd.read_csv(file_path, delimiter=',')
 # nicht benötigte Spalten löschen
@@ -514,7 +511,7 @@ app.layout = html.Div(
                             ],
                             style_as_list_view=True,
                             page_current=0,
-                            page_size=15,
+                            page_size=12,
                             style_cell={
                                 'textAlign': 'left',
                                 'fontSize': '75%',
@@ -639,4 +636,4 @@ def update_figures(selected_stocks, selected_stock, selected_country, start_date
 # RUN THE APP
 # --------------------------------------------------------------------
 if __name__ == '__main__':
-    app.run_server(debug=False, port=8055)
+    app.run_server(debug=False, port=8065)

@@ -30,7 +30,7 @@ import yfinance as yf
 # IMPORT DATA
 # -------------------------------------------------------------------
 # Aktiensymbole definieren und extrahieren
-aktien_symbole = ["BTC-USD", "^FCHI", "^GDAXI", "^HSI", "^IXIC", "^N225", "^RUT", "000001.SS", "AAPL", "MSFT", "FB", "TSLA", "UBS", "NSRGY", "NVS", "DB", "HSBC", "LOGI", "EA", "VWAGY", "RNLSY", "UBSFY", "SMSN.IL", "SRAIL.SW",  ]
+aktien_symbole = ["BTC-USD", "^FCHI", "^GDAXI", "^HSI", "^IXIC", "^N225", "^RUT", "000001.SS", "AAPL", "MSFT", "FB", "TSLA", "UBS", "NSRGY", "NVS", "DB", "HSBC", "LOGI", "EA", "VWAGY", "RNLSY", "UBSFY", "SMSN.IL", "SRAIL.SW", "SCMN.SW" ]
 
 data_frames = []
 for aktien_symbol in aktien_symbole:
@@ -439,7 +439,7 @@ app.layout = html.Div(
                                 {'label': country, 'value': country} for country in df_covid['Country'].unique()
                             ],
                             value='Switzerland',
-                            #placeholder='Select a country',
+                            placeholder='Select a country',
                             style={
                                 'backgroundColor': 'darkgrey',
                                 'color': 'black',
@@ -459,7 +459,8 @@ app.layout = html.Div(
                                 {'label': stock, 'value': stock} for stock in df_stocks['Stock/Index'].unique()
                             ],
                             value='BTC-USD',
-                            #placeholder='Select a stock/index',
+                            placeholder='Select a stock/index',
+                            #multi=True,  # Bug hier, wird nicht ausgewählt im Dashboard wenn aktiviert, aber wenn Filter leer werden alle angezeigt
                             style={
                                 'backgroundColor': 'darkgrey',
                                 'color': 'black',
@@ -494,6 +495,7 @@ app.layout = html.Div(
                                 {'name': 'Return', 'id': 'Return'},
                                 {'name': 'Return %', 'id': 'Return %'}
                             ],
+                            sort_action='native',
                             style_table={'overflowX': 'auto', 'fontFamily': '-apple-system'},
                             style_header={
                                 'backgroundColor': 'black',
